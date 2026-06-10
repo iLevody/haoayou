@@ -1,4 +1,4 @@
-name: Build APK from ZIP
+name: Build Signed APK from ZIP
 
 on:
   workflow_dispatch:
@@ -32,14 +32,37 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Build release APK
+      - name: Create signing keystore
+        run: |
+          keytool -genkeypair -v \
+            -keystore "$GITHUB_WORKSPACE/haoayou-release.jks" \
+            -storetype JKS \
+            -storepass 12345678 \
+            -keypass 12345678 \
+            -alias haoayou \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=haoayou, OU=iLevody, O=iLevody, L=Unknown, S=Unknown, C=CN"
+
+      - name: Build signed release APK
         working-directory: source/legado-3.26.030717
         run: |
           chmod +x ./gradlew
-          ./gradlew --no-daemon :app:assembleAppRelease --stacktrace
+          ./gradlew --no-daemon :app:assembleAppRelease --stacktrace \
+            -PRELEASE_STORE_FILE="$GITHUB_WORKSPACE/haoayou-release.jks" \
+            -PRELEASE_STORE_PASSWORD=12345678 \
+            -PRELEASE_KEY_ALIAS=haoayou \
+            -PRELEASE_KEY_PASSWORD=12345678
+
+      - name: Verify APK signature
+        run: |
+          APK="$(find source/legado-3.26.030717/app/build/outputs/apk -name '*.apk' | head -n 1)"
+          echo "APK=$APK"
+          "$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)/apksigner" verify --verbose "$APK"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: haoayou-apk
+          name: haoayou-signed-apk
           path: source/legado-3.26.030717/app/build/outputs/apk/**/*.apk
