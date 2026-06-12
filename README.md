@@ -1,7 +1,7 @@
 # 好啊有
 
 <div align="center">
-  <img width="128" height="128" src="ic_launcher.png" alt="好啊有图标">
+  <img width="128" height="128" src="download.png" alt="好啊有图标">
   <br>
   <strong>好啊有</strong>
   <br>
